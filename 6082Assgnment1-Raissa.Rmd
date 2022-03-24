@@ -1,0 +1,80 @@
+---
+title: "6082Assignment1-RaissaYeung-3035871587"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+################################################################################
+# Project: ECON6082 Data Visualization -Section-A 
+# Task: Assignment 1
+# Author: Yeung Sui Ping 3035871587
+# Date: 2021.12.21
+################################################################################
+
+################################################################################
+
+## Code
+```{r prepare}
+
+# Set working directory
+setwd("~/Desktop/Econ6082")
+
+# Clear the environment
+rm(list=ls())
+
+# Loading library
+library(pacman)
+p_load("gsheet","ggplot2","gsheet","gganimate","tidyverse","MASS","reshape","reshape2","hrbrthemes","scales","gifski","RColorBrewer")
+
+# Import the dataset
+CO2consumption <- gsheet2tbl('https://docs.google.com/spreadsheets/d/1tM3sCQxRcYFuIp7fU1EwsczpabQt5ORu/edit#gid=169136684')
+
+# Prepare the data and tidy the data
+CO2consumption <- CO2consumption[-1,]
+colnames(CO2consumption)[1] = "sector"
+CO2consumption <- melt(CO2consumption,id=c("sector"))
+colnames(CO2consumption) =c( "sector","year","value")
+CO2consumption %>% 
+  group_by(year) %>% 
+  mutate(rank=min_rank(-value)) %>% 
+  arrange(rank) %>% 
+  slice(1:10)-> CO2consumption # only top 10 sectoral emissions in each year are selected
+CO2consumption$year <- as.numeric(as.character(CO2consumption$year))
+
+
+```
+
+```{r plot}
+
+# Plot the graph
+p1 <- ggplot(CO2consumption, aes(x=-rank, y=value, fill=sector)) +
+  geom_col(alpha = 0.7) +
+  geom_text(aes(y = -10, label = sector), vjust = 0.5, hjust = 1, show.legend = FALSE,size=4) +
+  geom_text(aes(y = value+20, label = as.character(value)), vjust = 0.5, hjust = 0, show.legend = F, col="grey18",size=8) +
+  geom_text(x = 0 , y = 0, aes(label = as.character(CO2consumption$year)), size = 8, col = "#696969") +
+  coord_flip(clip = "off", expand = TRUE) +
+  scale_x_reverse() +
+  theme_ipsum(grid="X") +
+  theme(legend.position = "bottom",
+        legend.title = element_blank(),
+        plot.title = element_text(size = 20, face = "bold", margin = margin(0,0,5,0)),
+        plot.subtitle = element_text(size = 14,face="italic", margin = margin(0,0,45,0)),
+        axis.text.y = element_blank()) +
+  labs(y = NULL, #"CO2 Inventory Sum by Year "
+       x = NULL,
+       title = "China CO2 Top 10 Sectoral_Emissions",
+       subtitle = "Time Period: 2000-2015 (By Year)")  +
+  scale_y_continuous(labels = NULL, limits = c(-5000,10000),breaks=seq(from=0,to=10000,by=500))+
+  scale_x_discrete()+
+  #scale_fill_viridis(discrete = T, option = "viridis")+
+  scale_color_manual(values = brewer.pal(10, "RdBu"))+
+  transition_time(year)+ease_aes('cubic-in-out')
+
+animate(p1, nframes = 50, fps = 5, width = 1000, height = 1000,renderer=gifski_renderer())
+anim_save("CO2consumption.gif")
+
+```
+
+---- This is the end of the file. Thank you! ----
